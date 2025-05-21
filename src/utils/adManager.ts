@@ -8,12 +8,40 @@ import { defaultAdUnits } from './ads/defaultAds';
 export type { AdUnit };
 
 /**
+ * Register the service worker for ad handling
+ */
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered with scope:', registration.scope);
+      return true;
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+      return false;
+    }
+  }
+  return false;
+};
+
+/**
  * Hook to manage ad units in the application
  */
 export const useAdManager = () => {
   const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeAdsByPosition, setActiveAdsByPosition] = useState<Record<string, AdUnit[]>>({});
+  const [swRegistered, setSwRegistered] = useState(false);
+
+  // Register service worker on component mount
+  useEffect(() => {
+    const initServiceWorker = async () => {
+      const registered = await registerServiceWorker();
+      setSwRegistered(registered);
+    };
+    
+    initServiceWorker();
+  }, []);
 
   // Load ad units from database
   const loadAdUnits = useCallback(async () => {
@@ -150,7 +178,8 @@ export const useAdManager = () => {
     deleteAdUnit,
     toggleAdActive,
     resetToDefaults,
-    reloadAds: loadAdUnits
+    reloadAds: loadAdUnits,
+    swRegistered
   };
 };
 
